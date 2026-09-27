@@ -1,0 +1,406 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Study With Surojit</title>
+    <link rel="stylesheet" href="style.css">
+
+    <!-- Firebase SDKs (v8) -->
+    <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-app.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-auth.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-firestore.js"></script>
+</head>
+<body>
+
+    <!-- Mandatory Login & Profile Form Modal -->
+    <div id="auth-modal" style="display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.85); justify-content: center; align-items: center; z-index: 3000;">
+        <div style="background: white; padding: 25px; border-radius: 12px; width: 90%; max-width: 380px; text-align: center; box-shadow: 0 4px 20px rgba(0,0,0,0.3);">
+            
+            <div id="login-step-div">
+                <h2 style="color: #1a73e8; margin-bottom: 10px;">Welcome to Study With Surojit</h2>
+                <p style="font-size: 13px; color: #666; margin-bottom: 20px;">Please sign in with Google to continue using the app.</p>
+                <button onclick="signInWithGoogle()" style="width: 100%; background: #1a73e8; color: white; border: none; padding: 12px; border-radius: 6px; cursor: pointer; font-weight: bold; font-size: 14px;">Sign in with Google</button>
+            </div>
+
+            <div id="profile-form-div" style="display: none; text-align: left;">
+                <h3 style="color: #1a73e8; margin-bottom: 5px; text-align: center;">Complete Your Profile</h3>
+                <p style="font-size: 12px; color: #666; margin-bottom: 15px; text-align: center;">Please provide your details to proceed.</p>
+                
+                <label style="font-size: 12px; font-weight: bold; color: #555;">Full Name:</label>
+                <input type="text" id="reg-fullname" placeholder="Enter Full Name" style="width: 100%; padding: 8px; margin: 4px 0 10px 0; border: 1px solid #ccc; border-radius: 5px; font-size: 13px; box-sizing: border-box;">
+
+                <label style="font-size: 12px; font-weight: bold; color: #555;">Date of Birth (DOB):</label>
+                <input type="date" id="reg-dob" style="width: 100%; padding: 8px; margin: 4px 0 10px 0; border: 1px solid #ccc; border-radius: 5px; font-size: 13px; box-sizing: border-box;">
+
+                <label style="font-size: 12px; font-weight: bold; color: #555;">Profile Photo (Upload Image):</label>
+                <input type="file" id="reg-photo-file" accept="image/*" onchange="handleImageUpload(event)" style="width: 100%; padding: 6px; margin: 4px 0 10px 0; border: 1px solid #ccc; border-radius: 5px; font-size: 12px; background: #f8f9fa;">
+                <div id="image-preview-container" style="text-align: center; margin-bottom: 10px; display: none;">
+                    <img id="reg-photo-preview" src="" style="width: 50px; height: 50px; border-radius: 50%; object-fit: cover; border: 1px solid #ddd;">
+                </div>
+
+                <label style="font-size: 12px; font-weight: bold; color: #555;">School Name:</label>
+                <input type="text" id="reg-school" placeholder="Enter School Name" style="width: 100%; padding: 8px; margin: 4px 0 15px 0; border: 1px solid #ccc; border-radius: 5px; font-size: 13px; box-sizing: border-box;">
+
+                <button onclick="saveUserProfileDetails()" style="width: 100%; background: #28a745; color: white; border: none; padding: 10px; border-radius: 6px; cursor: pointer; font-weight: bold; font-size: 14px;">Save & Continue</button>
+            </div>
+
+        </div>
+    </div>
+
+    <!-- Header / Navbar -->
+    <header class="navbar">
+        <div class="nav-left">
+            <button class="hamburger" onclick="toggleSidebar()">☰</button>
+            <h1 class="logo" onclick="showSubjects()" style="cursor: pointer;">Study With Surojit</h1>
+        </div>
+        <div style="display: flex; gap: 8px; align-items: center;">
+            <button onclick="showProfilePage()" id="nav-profile-btn" style="display: none; background: #fff; color: #1a73e8; border: none; padding: 5px 10px; border-radius: 15px; cursor: pointer; font-size: 12px; font-weight: bold;">👤 Profile</button>
+            <button class="admin-btn" onclick="openAdminModal('super')" style="background: #0b192c; color: white; border: none; padding: 6px 10px; border-radius: 5px; cursor: pointer; font-size: 12px; font-weight: bold;">Main Admin</button>
+            <button class="admin-btn" onclick="openAdminModal('secondary')" style="background: #1a73e8; color: white; border: none; padding: 6px 10px; border-radius: 5px; cursor: pointer; font-size: 12px; font-weight: bold;">Secondary Admin</button>
+        </div>
+    </header>
+
+    <!-- Sidebar Overlay & Menu -->
+    <div id="sidebar-overlay" class="overlay" onclick="closeSidebar()"></div>
+    <aside id="sidebar" class="sidebar">
+        <div class="sidebar-header">
+            <h3>Study With Surojit</h3>
+            <button class="close-sidebar" onclick="closeSidebar()">✕</button>
+        </div>
+
+        <!-- User Profile Info -->
+        <div id="user-info-sidebar" style="display: none; padding: 15px; border-bottom: 1px solid #eee; text-align: center;">
+            <img id="user-avatar" src="" alt="Avatar" style="width: 50px; height: 50px; border-radius: 50%; object-fit: cover; margin-bottom: 5px;">
+            <h4 id="user-name-display" style="margin: 0; font-size: 14px; color: #333;"></h4>
+            <p id="user-email-display" style="margin: 2px 0 0 0; font-size: 11px; color: #777;"></p>
+        </div>
+
+        <nav class="sidebar-nav">
+            <button onclick="navTo('subjects')">📁 Subjects</button>
+            <button onclick="navTo('papers')">📜 PYQ & Question Papers</button>
+            <button onclick="navTo('profile')">👤 My Profile</button>
+            <button onclick="navTo('settings')">⚙️ Settings</button>
+            <button onclick="navTo('contact')">📞 Contact Us</button>
+        </nav>
+
+        <div style="padding: 15px; margin-top: auto;">
+            <button id="google-login-btn" onclick="signInWithGoogle()" style="width: 100%; background: #1a73e8; color: white; border: none; padding: 10px; border-radius: 6px; cursor: pointer; font-weight: bold;">Sign in with Google</button>
+            <button id="google-logout-btn" onclick="logoutUser()" style="width: 100%; background: #d93025; color: white; border: none; padding: 10px; border-radius: 6px; cursor: pointer; font-weight: bold; display: none;">Logout</button>
+            <button onclick="openAdminFromSidebar('super')" style="width: 100%; background: #0b192c; color: white; border: none; padding: 10px; border-radius: 6px; cursor: pointer; font-weight: bold; margin-top: 10px;">🛡️ Main Admin Panel</button>
+            <button onclick="openAdminFromSidebar('secondary')" style="width: 100%; background: #1a73e8; color: white; border: none; padding: 10px; border-radius: 6px; cursor: pointer; font-weight: bold; margin-top: 5px;">🛡️ Secondary Admin Panel</button>
+        </div>
+    </aside>
+
+    <!-- Live Announcement Bar -->
+    <div id="announcement-bar" style="background: #e8f0fe; color: #1a73e8; padding: 10px 15px; font-weight: 500; text-align: center; border-bottom: 1px solid #d2e3fc; font-size: 14px;">
+        📢 Notice: <span id="announcement-text">Welcome to Study With Surojit!</span>
+    </div>
+
+    <!-- Main Content Container -->
+    <main style="max-width: 900px; margin: 0 auto; padding: 10px;">
+
+        <!-- Custom HTML Code Container -->
+        <div id="custom-code-container" style="padding: 10px;"></div>
+
+        <!-- Subjects Grid Section -->
+        <section id="subjects-section" style="padding: 15px;">
+            <h2 style="color: #333; margin-bottom: 15px; font-size: 20px;">Select Subject</h2>
+            <div class="subjects-grid" style="display: grid; grid-template-columns: repeat(auto-fill, minmax(130px, 1fr)); gap: 15px;">
+                <div class="subject-card" onclick="openSubject('Bengali')" style="background: #fff; padding: 20px; border-radius: 10px; text-align: center; border: 1px solid #eee; cursor: pointer; box-shadow: 0 2px 4px rgba(0,0,0,0.05);">
+                    <div style="font-size: 30px;">📖</div>
+                    <h3 style="font-size: 14px; margin-top: 8px;">Bengali</h3>
+                </div>
+                <div class="subject-card" onclick="openSubject('English')" style="background: #fff; padding: 20px; border-radius: 10px; text-align: center; border: 1px solid #eee; cursor: pointer; box-shadow: 0 2px 4px rgba(0,0,0,0.05);">
+                    <div style="font-size: 30px;">📖</div>
+                    <h3 style="font-size: 14px; margin-top: 8px;">English</h3>
+                </div>
+                <div class="subject-card" onclick="openSubject('Math')" style="background: #fff; padding: 20px; border-radius: 10px; text-align: center; border: 1px solid #eee; cursor: pointer; box-shadow: 0 2px 4px rgba(0,0,0,0.05);">
+                    <div style="font-size: 30px;">📐</div>
+                    <h3 style="font-size: 14px; margin-top: 8px;">Math</h3>
+                </div>
+                <div class="subject-card" onclick="openSubject('Geography')" style="background: #fff; padding: 20px; border-radius: 10px; text-align: center; border: 1px solid #eee; cursor: pointer; box-shadow: 0 2px 4px rgba(0,0,0,0.05);">
+                    <div style="font-size: 30px;">🌍</div>
+                    <h3 style="font-size: 14px; margin-top: 8px;">Geography</h3>
+                </div>
+                <div class="subject-card" onclick="openSubject('History')" style="background: #fff; padding: 20px; border-radius: 10px; text-align: center; border: 1px solid #eee; cursor: pointer; box-shadow: 0 2px 4px rgba(0,0,0,0.05);">
+                    <div style="font-size: 30px;">📜</div>
+                    <h3 style="font-size: 14px; margin-top: 8px;">History</h3>
+                </div>
+                <div class="subject-card" onclick="openSubject('Life Science')" style="background: #fff; padding: 20px; border-radius: 10px; text-align: center; border: 1px solid #eee; cursor: pointer; box-shadow: 0 2px 4px rgba(0,0,0,0.05);">
+                    <div style="font-size: 30px;">🔬</div>
+                    <h3 style="font-size: 14px; margin-top: 8px;">Life Science</h3>
+                </div>
+                <div class="subject-card" onclick="openSubject('Physical Science')" style="background: #fff; padding: 20px; border-radius: 10px; text-align: center; border: 1px solid #eee; cursor: pointer; box-shadow: 0 2px 4px rgba(0,0,0,0.05);">
+                    <div style="font-size: 30px;">🧲</div>
+                    <h3 style="font-size: 14px; margin-top: 8px;">Physical Science</h3>
+                </div>
+            </div>
+        </section>
+
+        <!-- Chapter / Subject View Section -->
+        <section id="chapter-section" style="display: none; padding: 15px;">
+            <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 15px;">
+                <button onclick="showSubjects()" style="background: #f1f3f4; border: none; padding: 8px 12px; border-radius: 5px; cursor: pointer; font-weight: 500;">← Back to Subjects</button>
+                <button onclick="openSubmitNoteModal()" style="background: #28a745; color: white; border: none; padding: 8px 14px; border-radius: 6px; cursor: pointer; font-weight: bold; font-size: 13px;">+ Submit Note</button>
+            </div>
+            <h2 id="selected-subject-title" style="color: #1a73e8; margin-bottom: 15px;">Notes</h2>
+            <div id="chapter-list">
+                <p>Loading notes...</p>
+            </div>
+        </section>
+
+        <!-- Question Papers Section -->
+        <section id="papers-section" style="display: none; padding: 15px;">
+            <h2 style="color: #1a73e8; margin-bottom: 15px; font-size: 22px;">📜 Question Papers</h2>
+            <div style="display: flex; gap: 8px; flex-wrap: wrap; margin-bottom: 20px;">
+                <button onclick="filterPapers('all', this)" class="paper-tab-btn active" style="padding: 8px 14px; border: 1px solid #1a73e8; background: #1a73e8; color: white; border-radius: 20px; cursor: pointer; font-size: 13px; font-weight: 500;">📚 All Papers</button>
+                <button onclick="filterPapers('pyq', this)" class="paper-tab-btn" style="padding: 8px 14px; border: 1px solid #1a73e8; background: white; color: #1a73e8; border-radius: 20px; cursor: pointer; font-size: 13px; font-weight: 500;">📜 Past Year (PYQ)</button>
+                <button onclick="filterPapers('school', this)" class="paper-tab-btn" style="padding: 8px 14px; border: 1px solid #1a73e8; background: white; color: #1a73e8; border-radius: 20px; cursor: pointer; font-size: 13px; font-weight: 500;">🏫 School Exams</button>
+                <button onclick="filterPapers('tuition', this)" class="paper-tab-btn" style="padding: 8px 14px; border: 1px solid #1a73e8; background: white; color: #1a73e8; border-radius: 20px; cursor: pointer; font-size: 13px; font-weight: 500;">📝 Tuition Exams</button>
+            </div>
+            <div id="papers-list-container" style="display: grid; grid-template-columns: repeat(auto-fill, minmax(280px, 1fr)); gap: 15px;">
+                <p>Loading papers...</p>
+            </div>
+        </section>
+
+        <!-- User Profile & Edit Page Section (Opens as Page View, NOT Pop-up) -->
+        <section id="profile-section" style="display: none; padding: 20px; background: #fff; border-radius: 12px; box-shadow: 0 2px 8px rgba(0,0,0,0.05);">
+            <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px; border-bottom: 2px solid #f1f3f4; padding-bottom: 10px;">
+                <h2 style="color: #1a73e8; margin: 0;">👤 My Profile & Settings</h2>
+                <button onclick="showSubjects()" style="background: #6c757d; color: white; border: none; padding: 6px 12px; border-radius: 5px; cursor: pointer; font-weight: bold; font-size: 13px;">← Back to Home</button>
+            </div>
+
+            <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(280px, 1fr)); gap: 20px;">
+                <!-- Profile Edit Section -->
+                <div style="background: #f8f9fa; padding: 20px; border-radius: 10px; border: 1px solid #eee;">
+                    <h3 style="color: #333; margin-bottom: 15px; font-size: 16px;">✏️ Edit Profile Details</h3>
+                    
+                    <div style="text-align: center; margin-bottom: 15px;">
+                        <img id="edit-profile-photo-preview" src="" style="width: 70px; height: 70px; border-radius: 50%; object-fit: cover; border: 2px solid #1a73e8;">
+                    </div>
+
+                    <label style="font-size: 12px; font-weight: bold; color: #555;">Full Name:</label>
+                    <input type="text" id="edit-profile-name" style="width: 100%; padding: 8px; margin: 4px 0 10px 0; border: 1px solid #ccc; border-radius: 5px; font-size: 13px; box-sizing: border-box;">
+
+                    <label style="font-size: 12px; font-weight: bold; color: #555;">Date of Birth (DOB):</label>
+                    <input type="date" id="edit-profile-dob" style="width: 100%; padding: 8px; margin: 4px 0 10px 0; border: 1px solid #ccc; border-radius: 5px; font-size: 13px; box-sizing: border-box;">
+
+                    <label style="font-size: 12px; font-weight: bold; color: #555;">Profile Photo (Upload Image):</label>
+                    <input type="file" id="edit-profile-photo-file" accept="image/*" onchange="handleEditImageUpload(event)" style="width: 100%; padding: 6px; margin: 4px 0 10px 0; border: 1px solid #ccc; border-radius: 5px; font-size: 12px; background: #fff;">
+
+                    <label style="font-size: 12px; font-weight: bold; color: #555;">School Name:</label>
+                    <input type="text" id="edit-profile-school" style="width: 100%; padding: 8px; margin: 4px 0 15px 0; border: 1px solid #ccc; border-radius: 5px; font-size: 13px; box-sizing: border-box;">
+
+                    <button onclick="updateUserProfile()" style="width: 100%; background: #1a73e8; color: white; border: none; padding: 10px; border-radius: 6px; cursor: pointer; font-weight: bold; font-size: 14px;">Save Changes</button>
+                </div>
+
+                <!-- Submitted Notes Tracker Section -->
+                <div style="background: #f8f9fa; padding: 20px; border-radius: 10px; border: 1px solid #eee;">
+                    <h3 style="color: #333; margin-bottom: 12px; font-size: 16px;">📜 Track Your Submitted Notes</h3>
+                    <div id="user-submitted-notes-list">
+                        <p style="font-size: 13px; color: #666;">Loading your submissions...</p>
+                    </div>
+                </div>
+            </div>
+        </section>
+
+        <!-- Settings Section -->
+        <section id="settings-section" style="display: none; padding: 20px; background: #fff; border-radius: 12px; box-shadow: 0 2px 8px rgba(0,0,0,0.05);">
+            <h2 style="color: #1a73e8; margin-bottom: 15px;">⚙️ App Settings</h2>
+            <div style="display: flex; flex-direction: column; gap: 15px;">
+                <div style="display: flex; justify-content: space-between; align-items: center; padding: 10px; background: #f8f9fa; border-radius: 8px;">
+                    <span style="font-size: 14px; font-weight: 500;">🌙 Dark Mode</span>
+                    <input type="checkbox" id="dark-mode-toggle" onchange="toggleDarkMode(this.checked)" style="width: 20px; height: 20px; cursor: pointer;">
+                </div>
+            </div>
+            <div style="margin-top: 25px;">
+                <button onclick="showSubjects()" style="background: #1a73e8; color: white; border: none; padding: 10px 15px; border-radius: 6px; cursor: pointer; font-weight: bold;">Back to Home</button>
+            </div>
+        </section>
+
+        <!-- Contact Us Section -->
+        <section id="contact-section" style="display: none; padding: 20px; background: #fff; border-radius: 12px; box-shadow: 0 2px 8px rgba(0,0,0,0.05); text-align: center;">
+            <h2 style="color: #1a73e8; margin-bottom: 15px;">📞 Contact Us</h2>
+            <div id="contact-details-box" style="display: inline-block; text-align: left; background: #f8f9fa; padding: 20px; border-radius: 8px; border: 1px solid #eee;">
+                <p style="margin: 10px 0;">📸 <b>Instagram 1:</b> <a id="display-insta-1" href="https://instagram.com/sanatani_surojit" target="_blank" style="color: #1a73e8; text-decoration: none;">@sanatani_surojit</a></p>
+                <p style="margin: 10px 0;">📧 <b>Gmail 1:</b> <a id="display-gmail-1" href="mailto:surojit201123@gmail.com" style="color: #1a73e8; text-decoration: none;">surojit201123@gmail.com</a></p>
+            </div>
+            <div style="margin-top: 20px;">
+                <button onclick="showSubjects()" style="background: #1a73e8; color: white; border: none; padding: 10px 15px; border-radius: 6px; cursor: pointer; font-weight: bold;">Back to Home</button>
+            </div>
+        </section>
+
+        <!-- Admin Dashboard Panel -->
+        <section id="admin-dashboard" style="display: none; padding: 20px; background: #fff; border-radius: 12px; box-shadow: 0 4px 15px rgba(0,0,0,0.08); margin-top: 15px;">
+            <div style="display: flex; justify-content: space-between; align-items: center; border-bottom: 2px solid #f1f3f4; padding-bottom: 12px; margin-bottom: 18px;">
+                <div>
+                    <h2 id="admin-panel-heading" style="margin: 0; color: #1a73e8; font-size: 20px;">🛡️ Admin Dashboard</h2>
+                    <small id="admin-role-badge" style="background: #e8f0fe; color: #1a73e8; padding: 2px 8px; border-radius: 10px; font-weight: bold; font-size: 11px;">Admin</small>
+                </div>
+                <button onclick="closeAdminDashboard()" style="background: #f1f3f4; color: #333; border: none; padding: 8px 14px; border-radius: 6px; cursor: pointer; font-weight: bold; font-size: 13px;">Exit Admin</button>
+            </div>
+
+            <!-- Admin Navigation Tabs -->
+            <div style="display: flex; gap: 8px; border-bottom: 1px solid #ddd; margin-bottom: 18px; overflow-x: auto; padding-bottom: 8px;">
+                <button id="tab-btn-upload-content" class="dash-tab-btn active" onclick="switchAdminTab(event, 'upload-content')" style="padding: 8px 14px; border: none; background: #e8f0fe; color: #1a73e8; border-radius: 6px; cursor: pointer; font-weight: bold; font-size: 13px; white-space: nowrap;">📖 Upload Notes</button>
+                <button id="tab-btn-upload-paper" class="dash-tab-btn" onclick="switchAdminTab(event, 'upload-paper')" style="padding: 8px 14px; border: none; background: #f1f3f4; color: #333; border-radius: 6px; cursor: pointer; font-weight: bold; font-size: 13px; white-space: nowrap;">📜 Upload Papers</button>
+                <button id="tab-btn-manage-content" class="dash-tab-btn" onclick="switchAdminTab(event, 'manage-content')" style="padding: 8px 14px; border: none; background: #f1f3f4; color: #333; border-radius: 6px; cursor: pointer; font-weight: bold; font-size: 13px; white-space: nowrap;">🗑️ Manage Uploads</button>
+                
+                <!-- Super Admin Only Tabs -->
+                <button id="tab-btn-review-notes" class="dash-tab-btn super-admin-tab" onclick="switchAdminTab(event, 'review-notes')" style="display:none; padding: 8px 14px; border: none; background: #f1f3f4; color: #333; border-radius: 6px; cursor: pointer; font-weight: bold; font-size: 13px; white-space: nowrap;">⏳ Review Notes</button>
+                <button id="tab-btn-contact-edit" class="dash-tab-btn super-admin-tab" onclick="switchAdminTab(event, 'contact-edit')" style="display:none; padding: 8px 14px; border: none; background: #f1f3f4; color: #333; border-radius: 6px; cursor: pointer; font-weight: bold; font-size: 13px; white-space: nowrap;">📞 Edit Contact</button>
+                <button id="tab-btn-announcement" class="dash-tab-btn super-admin-tab" onclick="switchAdminTab(event, 'announcement')" style="display:none; padding: 8px 14px; border: none; background: #f1f3f4; color: #333; border-radius: 6px; cursor: pointer; font-weight: bold; font-size: 13px; white-space: nowrap;">📢 Notice</button>
+                <button id="tab-btn-code-editor" class="dash-tab-btn super-admin-tab" onclick="switchAdminTab(event, 'code-editor')" style="display:none; padding: 8px 14px; border: none; background: #f1f3f4; color: #333; border-radius: 6px; cursor: pointer; font-weight: bold; font-size: 13px; white-space: nowrap;">💻 Code Editor</button>
+                <button id="tab-btn-security" class="dash-tab-btn super-admin-tab" onclick="switchAdminTab(event, 'security')" style="display:none; padding: 8px 14px; border: none; background: #f1f3f4; color: #333; border-radius: 6px; cursor: pointer; font-weight: bold; font-size: 13px; white-space: nowrap;">🔐 Security</button>
+                <button id="tab-btn-backup" class="dash-tab-btn super-admin-tab" onclick="switchAdminTab(event, 'backup')" style="display:none; padding: 8px 14px; border: none; background: #f1f3f4; color: #333; border-radius: 6px; cursor: pointer; font-weight: bold; font-size: 13px; white-space: nowrap;">💾 Backup</button>
+                <button id="tab-btn-manage-users" class="dash-tab-btn super-admin-tab" onclick="switchAdminTab(event, 'manage-users')" style="display:none; padding: 8px 14px; border: none; background: #f1f3f4; color: #333; border-radius: 6px; cursor: pointer; font-weight: bold; font-size: 13px; white-space: nowrap;">👥 Students</button>
+                <button id="tab-btn-activity-log" class="dash-tab-btn super-admin-tab" onclick="switchAdminTab(event, 'activity-log')" style="display:none; padding: 8px 14px; border: none; background: #f1f3f4; color: #333; border-radius: 6px; cursor: pointer; font-weight: bold; font-size: 13px; white-space: nowrap;">📋 Logs</button>
+            </div>
+
+            <!-- Tab 1: Upload Notes -->
+            <div id="tab-upload-content" class="dash-tab-content">
+                <h3 style="font-size: 15px; margin-bottom: 12px; color: #333;">Add Chapter Note / PDF</h3>
+                <label style="font-size: 12px; font-weight: bold; color: #555;">Subject:</label>
+                <select id="admin-subject-select" style="width: 100%; padding: 10px; margin: 5px 0 12px 0; border-radius: 6px; border: 1px solid #ccc; font-size: 14px;">
+                    <option value="Bengali">Bengali</option>
+                    <option value="English">English</option>
+                    <option value="Math">Math</option>
+                    <option value="Geography">Geography</option>
+                    <option value="History">History</option>
+                    <option value="Life Science">Life Science</option>
+                    <option value="Physical Science">Physical Science</option>
+                </select>
+                <label style="font-size: 12px; font-weight: bold; color: #555;">Note Title:</label>
+                <input type="text" id="chapter-name-input" placeholder="e.g. Chapter 1 Notes" style="width: 100%; padding: 10px; margin: 5px 0 12px 0; border-radius: 6px; border: 1px solid #ccc; font-size: 14px; box-sizing: border-box;">
+                <label style="font-size: 12px; font-weight: bold; color: #555;">PDF / Drive Link:</label>
+                <input type="url" id="pdf-url-input" placeholder="Google Drive Link" style="width: 100%; padding: 10px; margin: 5px 0 15px 0; border-radius: 6px; border: 1px solid #ccc; font-size: 14px; box-sizing: border-box;">
+                <button onclick="addNewContent()" style="background: #1a73e8; color: white; border: none; padding: 12px; border-radius: 6px; cursor: pointer; font-weight: bold; width: 100%; font-size: 14px;">Save Note</button>
+            </div>
+
+            <!-- Tab 2: Upload Question Papers -->
+            <div id="tab-upload-paper" class="dash-tab-content" style="display: none;">
+                <h3 style="font-size: 15px; margin-bottom: 12px; color: #333;">Upload Question Paper</h3>
+                <label style="font-size: 12px; font-weight: bold; color: #555;">Category:</label>
+                <select id="admin-paper-category" style="width: 100%; padding: 10px; margin: 5px 0 12px 0; border-radius: 6px; border: 1px solid #ccc; font-size: 14px;">
+                    <option value="pyq">📜 Past Year Question Paper (PYQ)</option>
+                    <option value="school">🏫 School Exam Paper</option>
+                    <option value="tuition">📝 Tuition Question Paper</option>
+                </select>
+                <label style="font-size: 12px; font-weight: bold; color: #555;">Subject:</label>
+                <select id="admin-paper-subject" style="width: 100%; padding: 10px; margin: 5px 0 12px 0; border-radius: 6px; border: 1px solid #ccc; font-size: 14px;">
+                    <option value="Bengali">Bengali</option>
+                    <option value="English">English</option>
+                    <option value="Math">Math</option>
+                    <option value="Geography">Geography</option>
+                    <option value="History">History</option>
+                    <option value="Life Science">Life Science</option>
+                    <option value="Physical Science">Physical Science</option>
+                </select>
+                <label style="font-size: 12px; font-weight: bold; color: #555;">Paper Title:</label>
+                <input type="text" id="admin-paper-title" placeholder="e.g. Madhyamik 2023" style="width: 100%; padding: 10px; margin: 5px 0 12px 0; border-radius: 6px; border: 1px solid #ccc; font-size: 14px; box-sizing: border-box;">
+                <label style="font-size: 12px; font-weight: bold; color: #555;">PDF / Drive Link:</label>
+                <input type="url" id="admin-paper-url" placeholder="Google Drive Link" style="width: 100%; padding: 10px; margin: 5px 0 15px 0; border-radius: 6px; border: 1px solid #ccc; font-size: 14px; box-sizing: border-box;">
+                <button onclick="addNewQuestionPaper()" style="background: #28a745; color: white; border: none; padding: 12px; border-radius: 6px; cursor: pointer; font-weight: bold; width: 100%; font-size: 14px;">Upload Paper</button>
+            </div>
+
+            <!-- Tab 3: Manage Uploads -->
+            <div id="tab-manage-content" class="dash-tab-content" style="display: none;">
+                <h3 style="font-size: 15px; margin-bottom: 12px; color: #333;">Manage / Delete Uploaded Items</h3>
+                <div id="manage-content-list"><p>Loading...</p></div>
+            </div>
+
+            <!-- Tab 4: Review Notes -->
+            <div id="tab-review-notes" class="dash-tab-content super-admin-tab" style="display: none;">
+                <h3 style="font-size: 15px; margin-bottom: 12px; color: #333;">Pending Student Notes (Review & Approve)</h3>
+                <div id="pending-notes-container"><p>Loading...</p></div>
+            </div>
+
+            <!-- Tab 5: Edit Contact -->
+            <div id="tab-contact-edit" class="dash-tab-content super-admin-tab" style="display: none;">
+                <h3 style="font-size: 15px; margin-bottom: 12px; color: #333;">Edit Contact Info</h3>
+                <label style="font-size: 12px; font-weight: bold; color: #555;">Instagram 1 username:</label>
+                <input type="text" id="edit-insta-1" value="sanatani_surojit" style="width: 100%; padding: 10px; margin: 5px 0 12px 0; border-radius: 6px; border: 1px solid #ccc; font-size: 14px; box-sizing: border-box;">
+                <button onclick="updateContactInfo()" style="background: #1a73e8; color: white; border: none; padding: 12px; border-radius: 6px; cursor: pointer; font-weight: bold; width: 100%; font-size: 14px; margin-top: 10px;">Save Contact Info</button>
+            </div>
+
+            <!-- Tab 6: Announcement -->
+            <div id="tab-announcement" class="dash-tab-content super-admin-tab" style="display: none;">
+                <h3 style="font-size: 15px; margin-bottom: 12px; color: #333;">Update Announcement Notice</h3>
+                <input type="text" id="new-announcement" placeholder="Enter live notice text..." style="width: 100%; padding: 10px; margin-bottom: 15px; border-radius: 6px; border: 1px solid #ccc; font-size: 14px; box-sizing: border-box;">
+                <button onclick="updateNotice()" style="background: #1a73e8; color: white; border: none; padding: 12px; border-radius: 6px; cursor: pointer; font-weight: bold; width: 100%; font-size: 14px;">Update Live Notice</button>
+            </div>
+
+            <!-- Tab 7: Code Editor -->
+            <div id="tab-code-editor" class="dash-tab-content super-admin-tab" style="display: none;">
+                <h3 style="font-size: 15px; margin-bottom: 10px; color: #333;">💻 Live HTML / Code Editor</h3>
+                <textarea id="admin-code-input" rows="8" style="width: 100%; padding: 10px; border-radius: 6px; border: 1px solid #ccc; font-family: monospace; font-size: 13px; box-sizing: border-box; background: #1e1e1e; color: #00ff66;"></textarea>
+                <button onclick="saveCustomCode()" style="background: #1a73e8; color: white; border: none; padding: 12px; border-radius: 6px; cursor: pointer; font-weight: bold; width: 100%; font-size: 14px; margin-top: 10px;">Publish Code</button>
+            </div>
+
+            <!-- Tab 8: Security -->
+            <div id="tab-security" class="dash-tab-content super-admin-tab" style="display: none;">
+                <h3 style="font-size: 15px; margin-bottom: 12px; color: #333;">🔐 Change Admin Passcodes</h3>
+                <label style="font-size: 12px; font-weight: bold; color: #555;">New Main Admin Passcode:</label>
+                <input type="password" id="new-passcode-input" placeholder="New Main Admin passcode" style="width: 100%; padding: 10px; margin: 5px 0 12px 0; border-radius: 6px; border: 1px solid #ccc; font-size: 14px; box-sizing: border-box;">
+
+                <label style="font-size: 12px; font-weight: bold; color: #555;">New Secondary Admin Passcode:</label>
+                <input type="password" id="new-secondary-passcode-input" placeholder="New Secondary Admin passcode" style="width: 100%; padding: 10px; margin: 5px 0 15px 0; border-radius: 6px; border: 1px solid #ccc; font-size: 14px; box-sizing: border-box;">
+
+                <button onclick="updateAdminPasscode()" style="background: #d93025; color: white; border: none; padding: 12px; border-radius: 6px; cursor: pointer; font-weight: bold; width: 100%; font-size: 14px;">Update Passcodes</button>
+            </div>
+
+            <!-- Tab 9: Backup -->
+            <div id="tab-backup" class="dash-tab-content super-admin-tab" style="display: none;">
+                <h3 style="font-size: 15px; margin-bottom: 8px; color: #333;">💾 App Data Backup & Restore</h3>
+                <button onclick="downloadBackup()" style="width: 100%; background: #1a73e8; color: white; border: none; padding: 12px; border-radius: 6px; cursor: pointer; font-weight: bold; font-size: 13px; margin-bottom: 15px;">📥 Download Backup</button>
+                <input type="file" id="backup-file-input" accept=".json" style="width: 100%; padding: 8px; margin-bottom: 12px; border: 1px solid #ccc; border-radius: 6px; font-size: 13px; background: #f8f9fa;">
+                <button onclick="restoreBackupData()" style="width: 100%; background: #28a745; color: white; border: none; padding: 12px; border-radius: 6px; cursor: pointer; font-weight: bold; font-size: 14px;">📤 Restore Data</button>
+            </div>
+
+            <!-- Tab 10: Students (With Downloadable Profile Pictures) -->
+            <div id="tab-manage-users" class="dash-tab-content super-admin-tab" style="display: none;">
+                <h3 style="font-size: 15px; margin-bottom: 12px; color: #333;">Registered Students & Profiles</h3>
+                <div id="users-list-container"><p>Loading students...</p></div>
+            </div>
+
+            <!-- Tab 11: Activity Logs -->
+            <div id="tab-activity-log" class="dash-tab-content super-admin-tab" style="display: none;">
+                <h3 style="font-size: 15px; margin-bottom: 12px; color: #333;">System Activity Logs</h3>
+                <div id="activity-log-container"><p>Loading logs...</p></div>
+            </div>
+        </section>
+
+    </main>
+
+    <!-- Student Submit Note Modal -->
+    <div id="submit-note-modal" style="display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.6); justify-content: center; align-items: center; z-index: 2500;">
+        <div style="background: white; padding: 25px; border-radius: 12px; width: 90%; max-width: 350px; box-shadow: 0 4px 15px rgba(0,0,0,0.2);">
+            <h3 style="margin-top: 0; color: #1a73e8; margin-bottom: 15px;">📤 Submit Note for Review</h3>
+            <label style="font-size: 12px; font-weight: bold; color: #555;">Note Title:</label>
+            <input type="text" id="student-note-title" placeholder="e.g. Chapter Summary" style="width: 100%; padding: 8px; margin: 4px 0 10px 0; border: 1px solid #ccc; border-radius: 5px; font-size: 13px; box-sizing: border-box;">
+            <label style="font-size: 12px; font-weight: bold; color: #555;">PDF / Drive Link:</label>
+            <input type="url" id="student-note-link" placeholder="Google Drive Link" style="width: 100%; padding: 8px; margin: 4px 0 15px 0; border: 1px solid #ccc; border-radius: 5px; font-size: 13px; box-sizing: border-box;">
+            <div style="display: flex; gap: 10px;">
+                <button onclick="closeSubmitNoteModal()" style="flex: 1; padding: 10px; border: 1px solid #ccc; background: #fff; border-radius: 5px; cursor: pointer;">Cancel</button>
+                <button onclick="submitNoteForReview()" style="flex: 1; padding: 10px; border: none; background: #28a745; color: white; border-radius: 5px; cursor: pointer; font-weight: bold;">Submit</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Admin Passcode Modal -->
+    <div id="admin-modal" style="display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.5); justify-content: center; align-items: center; z-index: 3000;">
+        <div style="background: white; padding: 25px; border-radius: 10px; width: 90%; max-width: 320px; text-align: center; box-shadow: 0 4px 15px rgba(0,0,0,0.2);">
+            <h3 id="modal-title" style="margin-top: 0; color: #333;">Admin Passcode</h3>
+            <p id="modal-desc" style="font-size: 13px; color: #666; margin-bottom: 15px;">Enter passcode to continue</p>
+            <input type="password" id="passcode-input" placeholder="Enter Passcode" style="width: 100%; padding: 10px; font-size: 16px; text-align: center; border: 1px solid #ccc; border-radius: 5px; margin-bottom: 15px; box-sizing: border-box;">
+            <div style="display: flex; gap: 10px;">
+                <button onclick="closeModal()" style="flex: 1; padding: 10px; border: 1px solid #ccc; background: #fff; border-radius: 5px; cursor: pointer;">Cancel</button>
+                <button onclick="verifyPasscode()" style="flex: 1; padding: 10px; border: none; background: #1a73e8; color: white; border-radius: 5px; cursor: pointer; font-weight: bold;">Enter</button>
+            </div>
+        </div>
+    </div>
+
+    <script src="app.js"></script>
+</body>
+</html>
